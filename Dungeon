@@ -1,0 +1,232 @@
+import java.util.*;
+
+public class Dungeon {
+    private static final int WALL = 1;
+    private static final int FLOOR = 0;
+    private static final int STAIRS = 2;
+
+    private int[][] tiles;
+    private int width;
+    private int height;
+    private int level;
+    private int tileSize;
+    private List<Enemy> enemies;
+    private List<Trap> traps;
+    private List<Loot> loot;
+    private int[] playerStartPos;
+    private DungeonTheme theme;
+
+    public Dungeon(int width, int height, int level, int tileSize) {
+        this.width = width;
+        this.height = height;
+        this.level = level;
+        this.tileSize = tileSize;
+        this.enemies = new ArrayList<>();
+        this.traps = new ArrayList<>();
+        this.loot = new ArrayList<>();
+        this.theme = DungeonTheme.getThemeForLevel(level);
+
+        generateDungeon();
+        spawnEnemies();
+        spawnTraps();
+    }
+
+    private void generateDungeon() {
+        tiles = new int[height][width];
+        Random random = new Random(System.nanoTime() + level);
+
+        // Fill with walls
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                tiles[y][x] = WALL;
+            }
+        }
+
+        // Generate rooms
+        List<Room> rooms = new ArrayList<>();
+        for (int i = 0; i < 15 + level; i++) {
+            int w = 5 + random.nextInt(8);
+            int h = 5 + random.nextInt(8);
+            int x = 1 + random.nextInt(width - w - 2);
+            int y = 1 + random.nextInt(height - h - 2);
+
+            Room room = new Room(x, y, w, h);
+            if (!room.overlaps(rooms)) {
+                rooms.add(room);
+                carveRoom(room);
+            }
+        }
+
+        // Connect rooms
+        for (int i = 0; i < rooms.size() - 1; i++) {
+            connectRooms(rooms.get(i), rooms.get(i + 1));
+        }
+
+        // Place stairs in last room
+        if (!rooms.isEmpty()) {
+            Room lastRoom = rooms.get(rooms.size() - 1);
+            int stairsX = lastRoom.x + lastRoom.width / 2;
+            int stairsY = lastRoom.y + lastRoom.height / 2;
+            tiles[stairsY][stairsX] = STAIRS;
+        }
+
+        // Set player start position in first room
+        if (!rooms.isEmpty()) {
+            Room firstRoom = rooms.get(0);
+            playerStartPos = new int[]{firstRoom.x + 1, firstRoom.y + 1};
+        }
+    }
+
+    private void carveRoom(Room room) {
+        for (int y = room.y; y < room.y + room.height; y++) {
+            for (int x = room.x; x < room.x + room.width; x++) {
+                if (x > 0 && x < width && y > 0 && y < height) {
+                    tiles[y][x] = FLOOR;
+                }
+            }
+        }
+    }
+
+    private void connectRooms(Room room1, Room room2) {
+        Random random = new Random();
+        int x1 = room1.x + room1.width / 2;
+        int y1 = room1.y + room1.height / 2;
+        int x2 = room2.x + room2.width / 2;
+        int y2 = room2.y + room2.height / 2;
+
+        // Horizontal then vertical
+        if (random.nextBoolean()) {
+            carveCorridor(x1, y1, x2, y1);
+            carveCorridor(x2, y1, x2, y2);
+        } else {
+            carveCorridor(x1, y1, x1, y2);
+            carveCorridor(x1, y2, x2, y2);
+        }
+    }
+
+    private void carveCorridor(int x1, int y1, int x2, int y2) {
+        int dx = Integer.compare(x2, x1);
+        int dy = Integer.compare(y2, y1);
+
+        while (x1 != x2 || y1 != y2) {
+            if (x1 >= 0 && x1 < width && y1 >= 0 && y1 < height) {
+                tiles[y1][x1] = FLOOR;
+            }
+            if (x1 != x2) x1 += dx;
+            if (y1 != y2) y1 += dy;
+        }
+    }
+
+    private void spawnEnemies() {
+        Random random = new Random();
+        int enemyCount = 3 + level * 2;
+
+        for (int i = 0; i < enemyCount; i++) {
+            int x, y;
+            do {
+                x = random.nextInt(width);
+                y = random.nextInt(height);
+            } while (!isWalkable(x, y) || (x == playerStartPos[0] && y == playerStartPos[1]));
+
+            EnemyType type = EnemyType.getRandomType(level);
+            enemies.add(new Enemy(x, y, type, level, tileSize));
+        }
+    }
+
+    private void spawnTraps() {
+        Random random = new Random();
+        int trapCount = 2 + level;
+
+        for (int i = 0; i < trapCount; i++) {
+            int x, y;
+            do {
+                x = random.nextInt(width);
+                y = random.nextInt(height);
+            } while (!isWalkable(x, y) || (x == playerStartPos[0] && y == playerStartPos[1]));
+
+            TrapType type = TrapType.getRandomType();
+            traps.add(new Trap(x, y, type, tileSize));
+        }
+    }
+
+    public boolean isWalkable(int x, int y) {
+        if (x < 0 || x >= width || y < 0 || y >= height) return false;
+        return tiles[y][x] != WALL;
+    }
+
+    public boolean isStairs(int x, int y) {
+        if (x < 0 || x >= width || y < 0 || y >= height) return false;
+        return tiles[y][x] == STAIRS;
+    }
+
+    public void updateEnemies(Player player) {
+        for (Enemy enemy : enemies) {
+            enemy.updateAI(this, player);
+        }
+    }
+
+    public void addLoot(Loot loot) {
+        this.loot.add(loot);
+    }
+
+    public void removeLoot(Loot loot) {
+        this.loot.remove(loot);
+    }
+
+    public void removeEnemy(Enemy enemy) {
+        enemies.remove(enemy);
+    }
+
+    public int[][] getTiles() {
+        return tiles;
+    }
+
+    public List<Enemy> getEnemies() {
+        return new ArrayList<>(enemies);
+    }
+
+    public List<Trap> getTraps() {
+        return new ArrayList<>(traps);
+    }
+
+    public List<Loot> getLoot() {
+        return new ArrayList<>(loot);
+    }
+
+    public int[] getPlayerStartPos() {
+        return playerStartPos;
+    }
+
+    public int getWidth() {
+        return width;
+    }
+
+    public int getHeight() {
+        return height;
+    }
+
+    public DungeonTheme getTheme() {
+        return theme;
+    }
+
+    private static class Room {
+        int x, y, width, height;
+
+        Room(int x, int y, int width, int height) {
+            this.x = x;
+            this.y = y;
+            this.width = width;
+            this.height = height;
+        }
+
+        boolean overlaps(List<Room> rooms) {
+            for (Room r : rooms) {
+                if (!(x + width < r.x || x > r.x + r.width ||
+                      y + height < r.y || y > r.y + r.height)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+    }
+}
