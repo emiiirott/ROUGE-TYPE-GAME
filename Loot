@@ -1,0 +1,32 @@
+public class Loot {
+    private int gridX, gridY;
+    private Item item;
+    private int tileSize;
+
+    public Loot(int gridX, int gridY, Item item, int tileSize) {
+        this.gridX = gridX;
+        this.gridY = gridY;
+        this.item = item;
+        this.tileSize = tileSize;
+    }
+
+    public int getGridX() {
+        return gridX;
+    }
+
+    public int getGridY() {
+        return gridY;
+    }
+
+    public int getPixelX() {
+        return gridX * tileSize;
+    }
+
+    public int getPixelY() {
+        return gridY * tileSize;
+    }
+
+    public Item getItem() {
+        return item;
+    }
+}
