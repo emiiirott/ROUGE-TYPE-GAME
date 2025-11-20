@@ -1,0 +1,229 @@
+import java.awt.*;
+import java.awt.geom.Ellipse2D;
+
+public class GameRenderer {
+    private int width, height, tileSize;
+
+    public GameRenderer(int width, int height, int tileSize) {
+        this.width = width;
+        this.height = height;
+        this.tileSize = tileSize;
+    }
+
+    public void render(Graphics2D g2d, Dungeon dungeon, Player player, int level, boolean gameOver, String deathMessage) {
+        DungeonTheme theme = dungeon.getTheme();
+
+        // Draw tiles
+        int[][] tiles = dungeon.getTiles();
+        for (int y = 0; y < dungeon.getHeight(); y++) {
+            for (int x = 0; x < dungeon.getWidth(); x++) {
+                int pixelX = x * tileSize;
+                int pixelY = y * tileSize;
+
+                if (tiles[y][x] == 0) {
+                    g2d.setColor(theme.floorColor);
+                    g2d.fillRect(pixelX, pixelY, tileSize, tileSize);
+                    g2d.setColor(new Color(100, 100, 100, 50));
+                    g2d.drawRect(pixelX, pixelY, tileSize, tileSize);
+
+                } else if (tiles[y][x] == 1) {
+                    g2d.setColor(theme.wallColor);
+                    g2d.fillRect(pixelX, pixelY, tileSize, tileSize);
+                    g2d.setColor(new Color(255, 255, 255, 30));
+                    g2d.drawRect(pixelX + 2, pixelY + 2, tileSize - 4, tileSize - 4);
+
+                } else if (tiles[y][x] == 2) {
+                    // Stairs with glow
+                    g2d.setColor(new Color(200, 150, 0));
+                    g2d.fillRect(pixelX, pixelY, tileSize, tileSize);
+                    g2d.setColor(new Color(255, 200, 0, 100));
+                    g2d.fillOval(pixelX + 4, pixelY + 4, tileSize - 8, tileSize - 8);
+                }
+            }
+        }
+
+        // Draw torches (decorative lights)
+        drawLights(g2d, theme);
+
+        // Draw traps
+        for (Trap trap : dungeon.getTraps()) {
+            drawTrap(g2d, trap, theme);
+        }
+
+        // Draw loot
+        for (Loot loot : dungeon.getLoot()) {
+            drawLoot(g2d, loot);
+        }
+
+        // Draw enemies
+        for (Enemy enemy : dungeon.getEnemies()) {
+            drawEnemy(g2d, enemy);
+        }
+
+        // Draw player
+        drawPlayer(g2d, player);
+
+        // Draw HUD
+        drawHUD(g2d, player, level, theme);
+
+        if (gameOver) {
+            drawGameOverScreen(g2d, deathMessage);
+        }
+    }
+
+    private void drawPlayer(Graphics2D g2d, Player player) {
+        int x = player.getPixelX();
+        int y = player.getPixelY();
+
+        g2d.setColor(new Color(0, 255, 100));
+        g2d.fillRect(x + 4, y + 4, tileSize - 8, tileSize - 8);
+
+        g2d.setColor(new Color(0, 200, 80));
+        g2d.drawRect(x + 2, y + 2, tileSize - 4, tileSize - 4);
+
+        // Draw player glow
+        g2d.setColor(new Color(0, 255, 100, 50));
+        g2d.fillOval(x - 8, y - 8, tileSize + 16, tileSize + 16);
+    }
+
+    private void drawEnemy(Graphics2D g2d, Enemy enemy) {
+        int x = enemy.getPixelX();
+        int y = enemy.getPixelY();
+
+        Color color = getEnemyColor(enemy.getType());
+        g2d.setColor(color);
+        g2d.fillRect(x + 2, y + 2, tileSize - 4, tileSize - 4);
+
+        g2d.setColor(new Color(255, 255, 255, 100));
+        g2d.drawRect(x + 1, y + 1, tileSize - 2, tileSize - 2);
+
+        // Draw health bar
+        int healthBarWidth = tileSize - 4;
+        int healthPercent = (enemy.getHealth() * 100) / enemy.getMaxHealth();
+        int healthBarFill = (healthBarWidth * healthPercent) / 100;
+
+        g2d.setColor(new Color(100, 100, 100));
+        g2d.fillRect(x + 2, y - 6, healthBarWidth, 4);
+
+        if (healthPercent > 50) {
+            g2d.setColor(new Color(0, 255, 0));
+        } else if (healthPercent > 25) {
+            g2d.setColor(new Color(255, 255, 0));
+        } else {
+            g2d.setColor(new Color(255, 0, 0));
+        }
+        g2d.fillRect(x + 2, y - 6, healthBarFill, 4);
+    }
+
+    private void drawTrap(Graphics2D g2d, Trap trap, DungeonTheme theme) {
+        int x = trap.getPixelX();
+        int y = trap.getPixelY();
+
+        if (trap.isTriggered()) {
+            g2d.setColor(new Color(100, 100, 100));
+        } else {
+            g2d.setColor(new Color(200, 50, 50));
+        }
+
+        // Draw X pattern for trap
+        g2d.setStroke(new BasicStroke(2));
+        g2d.drawLine(x + 4, y + 4, x + tileSize - 4, y + tileSize - 4);
+        g2d.drawLine(x + tileSize - 4, y + 4, x + 4, y + tileSize - 4);
+    }
+
+    private void drawLoot(Graphics2D g2d, Loot loot) {
+        int x = loot.getPixelX();
+        int y = loot.getPixelY();
+
+        g2d.setColor(new Color(255, 215, 0));
+        g2d.fillOval(x + 6, y + 6, tileSize - 12, tileSize - 12);
+
+        // Glowing effect
+        g2d.setColor(new Color(255, 215, 0, 100));
+        g2d.fillOval(x + 2, y + 2, tileSize - 4, tileSize - 4);
+    }
+
+    private void drawLights(Graphics2D g2d, DungeonTheme theme) {
+        // Create flickering torch lights
+        int torchDistance = 12;
+        for (int y = torchDistance; y < 800; y += torchDistance * 3) {
+            for (int x = torchDistance; x < 1280; x += torchDistance * 3) {
+                drawTorch(g2d, x, y, theme.torchColor);
+            }
+        }
+    }
+
+    private void drawTorch(Graphics2D g2d, int x, int y, Color torchColor) {
+        // Torch glow effect
+        g2d.setColor(new Color(torchColor.getRed(), torchColor.getGreen(), torchColor.getBlue(), 20));
+        g2d.fillOval(x - 60, y - 60, 120, 120);
+
+        g2d.setColor(new Color(torchColor.getRed(), torchColor.getGreen(), torchColor.getBlue(), 40));
+        g2d.fillOval(x - 30, y - 30, 60, 60);
+
+        g2d.setColor(torchColor);
+        g2d.fillOval(x - 8, y - 8, 16, 16);
+    }
+
+    private void drawHUD(Graphics2D g2d, Player player, int level, DungeonTheme theme) {
+        // HUD background
+        g2d.setColor(new Color(0, 0, 0, 150));
+        g2d.fillRect(0, 0, width, 80);
+
+        g2d.setColor(Color.WHITE);
+        g2d.setFont(new Font("Arial", Font.BOLD, 14));
+
+        // Player stats
+        g2d.drawString("Level: " + player.getLevel(), 10, 20);
+        g2d.drawString("HP: " + player.getHealth() + "/" + player.getMaxHealth(), 10, 40);
+        g2d.drawString("ATK: " + player.getAttack() + " | DEF: " + player.getDefense(), 10, 60);
+
+        // Dungeon level
+        g2d.drawString("Dungeon Level: " + level, width - 200, 20);
+        g2d.drawString("Theme: " + theme.themeName, width - 200, 40);
+
+        // XP bar
+        int xpPercent = (player.getExperience() * 100) / (100 * player.getLevel());
+        g2d.setColor(new Color(100, 100, 255));
+        g2d.fillRect(300, 30, 100, 10);
+        g2d.setColor(new Color(0, 200, 255));
+        g2d.fillRect(300, 30, xpPercent, 10);
+
+        g2d.setColor(Color.WHITE);
+        g2d.drawString("XP", 280, 40);
+    }
+
+    private void drawGameOverScreen(Graphics2D g2d, String deathMessage) {
+        // Semi-transparent overlay
+        g2d.setColor(new Color(0, 0, 0, 200));
+        g2d.fillRect(0, 0, width, height);
+
+        g2d.setColor(new Color(255, 50, 50));
+        g2d.setFont(new Font("Arial", Font.BOLD, 40));
+        String gameOverText = "GAME OVER";
+        FontMetrics fm = g2d.getFontMetrics();
+        int textWidth = fm.stringWidth(gameOverText);
+        g2d.drawString(gameOverText, (width - textWidth) / 2, height / 2 - 60);
+
+        g2d.setColor(Color.WHITE);
+        g2d.setFont(new Font("Arial", Font.PLAIN, 20));
+        int messageWidth = fm.stringWidth(deathMessage);
+        g2d.drawString(deathMessage, (width - messageWidth) / 2, height / 2);
+
+        g2d.setFont(new Font("Arial", Font.PLAIN, 16));
+        String restartText = "Press R to restart or Q to quit";
+        int restartWidth = fm.stringWidth(restartText);
+        g2d.drawString(restartText, (width - restartWidth) / 2, height / 2 + 60);
+    }
+
+    private Color getEnemyColor(EnemyType type) {
+        switch (type) {
+            case GOBLIN: return new Color(100, 200, 50);
+            case ORC: return new Color(150, 100, 50);
+            case SKELETON: return new Color(200, 200, 200);
+            case TROLL: return new Color(150, 100, 150);
+            case DEMON: return new Color(200, 50, 50);
+            default: return new Color(150, 150, 150);
+        }
+    }
+}
