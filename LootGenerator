@@ -1,0 +1,36 @@
+import java.util.Random;
+
+public class LootGenerator {
+    private static final Random random = new Random();
+
+    public static Loot generateLoot(int gridX, int gridY, int level) {
+        if (random.nextDouble() > 0.6) {
+            return null; // 40% chance to drop loot
+        }
+
+        int lootRoll = random.nextInt(100);
+        Item item;
+
+        if (lootRoll < 40) {
+            // Weapon
+            String[] names = {"Iron Sword", "Steel Blade", "Enchanted Axe", "Flaming Mace", "Shadowblade"};
+            String name = names[Math.min(level - 1, names.length - 1)];
+            int attack = 2 + level;
+            item = new Item(name, ItemType.WEAPON, attack, 0, 0);
+
+        } else if (lootRoll < 80) {
+            // Armor
+            String[] names = {"Leather Armor", "Chainmail", "Plate Armor", "Dragon Scale", "Enchanted Mail"};
+            String name = names[Math.min(level - 1, names.length - 1)];
+            int defense = 1 + (level / 2);
+            item = new Item(name, ItemType.ARMOR, 0, defense, 0);
+
+        } else {
+            // Potion
+            int health = 10 + (level * 3);
+            item = new Item("Health Potion", ItemType.POTION, 0, 0, health);
+        }
+
+        return new Loot(gridX, gridY, item, 32);
+    }
+}
