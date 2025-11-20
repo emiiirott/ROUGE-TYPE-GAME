@@ -1,0 +1,142 @@
+import java.util.*;
+
+public class Enemy {
+    private int gridX, gridY;
+    private int health, maxHealth;
+    private int attack, defense;
+    private int experienceReward;
+    private EnemyType type;
+    private int tileSize;
+    private int moveCounter = 0;
+    private static Random random = new Random();
+
+    public Enemy(int gridX, int gridY, EnemyType type, int level, int tileSize) {
+        this.gridX = gridX;
+        this.gridY = gridY;
+        this.type = type;
+        this.tileSize = tileSize;
+
+        // Scale stats based on level
+        this.maxHealth = type.baseHealth + (level * 2);
+        this.health = maxHealth;
+        this.attack = type.baseAttack + level;
+        this.defense = type.baseDefense + (level / 2);
+        this.experienceReward = type.baseExperience * level;
+    }
+
+    public void updateAI(Dungeon dungeon, Player player) {
+        moveCounter++;
+        if (moveCounter < 2) return;
+        moveCounter = 0;
+
+        int playerX = player.getGridX();
+        int playerY = player.getGridY();
+        int distX = Math.abs(playerX - gridX);
+        int distY = Math.abs(playerY - gridY);
+
+        // If close to player, move towards
+        if (distX + distY < 10) {
+            int dx = Integer.compare(playerX, gridX);
+            int dy = Integer.compare(playerY, gridY);
+
+            int newX = gridX + dx;
+            int newY = gridY + dy;
+
+            if (dungeon.isWalkable(newX, newY)) {
+                gridX = newX;
+                gridY = newY;
+            }
+        } else {
+            // Random wandering
+            int[] dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
+            int[] dir = dirs[random.nextInt(4)];
+            int newX = gridX + dir[0];
+            int newY = gridY + dir[1];
+
+            if (dungeon.isWalkable(newX, newY)) {
+                gridX = newX;
+                gridY = newY;
+            }
+        }
+    }
+
+    public void takeDamage(int damage) {
+        int actualDamage = Math.max(1, damage - defense);
+        health -= actualDamage;
+    }
+
+    public int getGridX() {
+        return gridX;
+    }
+
+    public int getGridY() {
+        return gridY;
+    }
+
+    public int getPixelX() {
+        return gridX * tileSize;
+    }
+
+    public int getPixelY() {
+        return gridY * tileSize;
+    }
+
+    public int getHealth() {
+        return health;
+    }
+
+    public int getMaxHealth() {
+        return maxHealth;
+    }
+
+    public int getDamage() {
+        return Math.max(1, attack + random.nextInt(3) - 1);
+    }
+
+    public int getDefense() {
+        return defense;
+    }
+
+    public int getExperienceReward() {
+        return experienceReward;
+    }
+
+    public EnemyType getType() {
+        return type;
+    }
+}
+
+enum EnemyType {
+    GOBLIN("Goblin", 8, 2, 1, 10),
+    ORC("Orc", 15, 4, 2, 25),
+    SKELETON("Skeleton", 12, 3, 1, 20),
+    TROLL("Troll", 25, 5, 3, 40),
+    DEMON("Demon", 35, 7, 4, 60);
+
+    String name;
+    int baseHealth;
+    int baseAttack;
+    int baseDefense;
+    int baseExperience;
+
+    EnemyType(String name, int baseHealth, int baseAttack, int baseDefense, int baseExperience) {
+        this.name = name;
+        this.baseHealth = baseHealth;
+        this.baseAttack = baseAttack;
+        this.baseDefense = baseDefense;
+        this.baseExperience = baseExperience;
+    }
+
+    public static EnemyType getRandomType(int level) {
+        Random random = new Random();
+        EnemyType[] types = EnemyType.values();
+
+        // Higher level = harder enemies
+        int index = Math.min(random.nextInt(level + 2), types.length - 1);
+        return types[index];
+    }
+
+    public String getName() {
+        return name;
+    }
+}
