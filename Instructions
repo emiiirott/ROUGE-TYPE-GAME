@@ -1,0 +1,97 @@
+ROGUELIKE DUNGEON EXPLORER - JAVA SETUP GUIDE
+=============================================
+
+1. CREATE A NEW PROJECT IN ECLIPSE:
+   - Open Eclipse
+   - File > New > Java Project
+   - Project name: "RoguelikeDungeon"
+   - Click Finish
+
+2. COPY SOURCE FILES:
+   - Copy all .java files to: src/
+   - The project should have all these files:
+     * RoguelikeGame.java (main entry point)
+     * GamePanel.java (game loop)
+     * InputHandler.java (keyboard input)
+     * Dungeon.java (level generation)
+     * Player.java (player stats)
+     * Enemy.java (enemy AI)
+     * Trap.java (trap system)
+     * Loot.java (loot items)
+     * Item.java (item definitions)
+     * Inventory.java (inventory management)
+     * LootGenerator.java (random loot)
+     * DungeonTheme.java (dungeon themes)
+     * GameRenderer.java (graphics rendering)
+     * GameState.java (game states)
+
+3. RUN THE GAME:
+   - Right-click on RoguelikeGame.java
+   - Run As > Java Application
+   - The game window will open automatically
+
+GAME CONTROLS:
+==============
+- Arrow Keys or WASD: Move around
+- Space: Attack adjacent enemies
+- Q: Quit game
+- R: Restart after game over
+
+GAME FEATURES:
+==============
+✓ Procedurally generated dungeons
+✓ 5 enemy types with scaling difficulty
+✓ 4 dungeon themes (Stone, Ice, Obsidian, Corrupted)
+✓ Multiple dungeon levels with progression
+✓ Trap system (4 different trap types)
+✓ Item and loot system
+✓ Inventory management
+✓ Combat system with hit chances
+✓ Enemy AI with pathfinding
+✓ Health/mana bars
+✓ Experience and leveling system
+✓ Permadeath roguelike mechanics
+✓ Glowing torch effects and atmospheric lighting
+
+GAMEPLAY GUIDE:
+===============
+1. Explore the dungeon and defeat enemies
+2. Collect loot to improve your stats
+3. Find the stairs (golden square with glow) to go to the next level
+4. Each level gets harder with more enemies and better loot
+5. If you die, restart with R or quit with Q
+6. Get stronger, explore deeper, and survive as long as possible!
+
+ENEMY TYPES:
+============
+- Goblin: Weak, common (green)
+- Skeleton: Medium, decaying (white)
+- Orc: Strong, armored (brown)
+- Troll: Very strong, regenerating (purple)
+- Demon: Boss-level, powerful (red)
+
+DUNGEON THEMES:
+===============
+- Level 1: Stone Dungeon (gray/orange torches)
+- Level 2: Ice Cavern (blue/cyan torches)
+- Level 3: Obsidian Fortress (dark gray/red torches)
+- Level 4+: Corrupted Temple (purple/pink torches)
+(Themes repeat with escalating difficulty)
+
+CUSTOMIZATION:
+==============
+You can modify these values in the source code:
+- GamePanel.java: WIDTH, HEIGHT, TILE_SIZE
+- Dungeon.java: Enemy spawn count and type
+- Player.java: Starting stats (health, mana, attack, defense)
+- DungeonTheme.java: Color schemes
+- Enemy.java: Enemy stats scaling
+
+NO EXTERNAL DEPENDENCIES REQUIRED!
+All code uses standard Java Swing libraries.
+
+If you have any issues, ensure:
+1. Java 8+ is installed
+2. Eclipse is up to date
+3. All .java files are in the src/ folder
+4. No syntax errors shown in Eclipse
