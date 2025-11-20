@@ -1,0 +1,119 @@
+import java.util.*;
+
+public class Player {
+    private int gridX, gridY;
+    private int health, maxHealth;
+    private int mana, maxMana;
+    private int experience = 0;
+    private int level = 1;
+    private int baseAttack = 5;
+    private int baseDefense = 2;
+    private int tileSize;
+    private Inventory inventory;
+
+    public Player(int gridX, int gridY, int tileSize) {
+        this.gridX = gridX;
+        this.gridY = gridY;
+        this.tileSize = tileSize;
+        this.maxHealth = 30;
+        this.health = maxHealth;
+        this.maxMana = 20;
+        this.mana = maxMana;
+        this.inventory = new Inventory();
+    }
+
+    public void setGridPosition(int x, int y) {
+        this.gridX = x;
+        this.gridY = y;
+    }
+
+    public void attack(Enemy enemy) {
+        int damage = baseAttack + new Random().nextInt(3) - 1;
+        damage += inventory.getAttackBonus();
+
+        if (new Random().nextDouble() < 0.7) {
+            enemy.takeDamage(damage);
+        }
+    }
+
+    public void takeDamage(int damage) {
+        int actualDamage = Math.max(1, damage - (baseDefense + inventory.getDefenseBonus()));
+        health -= actualDamage;
+    }
+
+    public void heal(int amount) {
+        health = Math.min(maxHealth, health + amount);
+    }
+
+    public void addExperience(int exp) {
+        experience += exp;
+        if (experience >= 100 * level) {
+            levelUp();
+        }
+    }
+
+    private void levelUp() {
+        level++;
+        experience = 0;
+        maxHealth += 5;
+        health = maxHealth;
+        baseAttack += 2;
+        baseDefense += 1;
+    }
+
+    public void pickupItem(Item item) {
+        inventory.addItem(item);
+    }
+
+    public int getGridX() {
+        return gridX;
+    }
+
+    public int getGridY() {
+        return gridY;
+    }
+
+    public int getPixelX() {
+        return gridX * tileSize;
+    }
+
+    public int getPixelY() {
+        return gridY * tileSize;
+    }
+
+    public int getHealth() {
+        return health;
+    }
+
+    public int getMaxHealth() {
+        return maxHealth;
+    }
+
+    public int getMana() {
+        return mana;
+    }
+
+    public int getMaxMana() {
+        return maxMana;
+    }
+
+    public int getLevel() {
+        return level;
+    }
+
+    public int getExperience() {
+        return experience;
+    }
+
+    public int getAttack() {
+        return baseAttack + inventory.getAttackBonus();
+    }
+
+    public int getDefense() {
+        return baseDefense + inventory.getDefenseBonus();
+    }
+
+    public Inventory getInventory() {
+        return inventory;
+    }
+}
