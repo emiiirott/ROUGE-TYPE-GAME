@@ -1,0 +1,200 @@
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.*;
+import java.awt.image.BufferedImage;
+
+public class GamePanel extends JPanel {
+    private static final int WIDTH = 1280;
+    private static final int HEIGHT = 800;
+    private static final int TILE_SIZE = 32;
+
+    private Dungeon dungeon;
+    private Player player;
+    private GameRenderer renderer;
+    private InputHandler inputHandler;
+    private GameState gameState;
+    private int currentLevel = 1;
+    private boolean gameOver = false;
+    private String deathMessage = "";
+
+    public GamePanel() {
+        setPreferredSize(new Dimension(WIDTH, HEIGHT));
+        setBackground(new Color(10, 10, 15));
+        setFocusable(true);
+
+        gameState = GameState.PLAYING;
+        inputHandler = new InputHandler();
+        renderer = new GameRenderer(WIDTH, HEIGHT, TILE_SIZE);
+
+        addKeyListener(inputHandler);
+        addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                handleInput(e);
+            }
+        });
+
+        initializeGame();
+        startGameLoop();
+    }
+
+    private void initializeGame() {
+        dungeon = new Dungeon(40, 30, currentLevel, TILE_SIZE);
+        player = new Player(dungeon.getPlayerStartPos()[0], dungeon.getPlayerStartPos()[1], TILE_SIZE);
+        gameOver = false;
+        deathMessage = "";
+    }
+
+    private void startGameLoop() {
+        Thread gameThread = new Thread(() -> {
+            long lastTime = System.nanoTime();
+            double amountOfTicks = 60.0;
+            double ns = 1000000000 / amountOfTicks;
+            double delta = 0;
+
+            while (true) {
+                long now = System.nanoTime();
+                delta += (now - lastTime) / ns;
+                lastTime = now;
+
+                while (delta >= 1) {
+                    update();
+                    delta--;
+                }
+                repaint();
+
+                try {
+                    Thread.sleep(1);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+        gameThread.setDaemon(true);
+        gameThread.start();
+    }
+
+    private void update() {
+        if (gameOver) return;
+
+        // Handle player movement
+        if (inputHandler.isKeyPressed(KeyEvent.VK_UP) || inputHandler.isKeyPressed(KeyEvent.VK_W)) {
+            movePlayer(0, -1);
+        } else if (inputHandler.isKeyPressed(KeyEvent.VK_DOWN) || inputHandler.isKeyPressed(KeyEvent.VK_S)) {
+            movePlayer(0, 1);
+        } else if (inputHandler.isKeyPressed(KeyEvent.VK_LEFT) || inputHandler.isKeyPressed(KeyEvent.VK_A)) {
+            movePlayer(-1, 0);
+        } else if (inputHandler.isKeyPressed(KeyEvent.VK_RIGHT) || inputHandler.isKeyPressed(KeyEvent.VK_D)) {
+            movePlayer(1, 0);
+        }
+
+        // Handle action button
+        if (inputHandler.isKeyPressed(KeyEvent.VK_SPACE)) {
+            playerAction();
+            inputHandler.setKeyPressed(KeyEvent.VK_SPACE, false);
+        }
+
+        // Update enemies
+        dungeon.updateEnemies(player);
+
+        // Check collisions
+        checkCollisions();
+
+        // Check traps
+        checkTrapCollision();
+    }
+
+    private void movePlayer(int dx, int dy) {
+        int newX = player.getGridX() + dx;
+        int newY = player.getGridY() + dy;
+
+        if (dungeon.isWalkable(newX, newY)) {
+            player.setGridPosition(newX, newY);
+
+            // Check if player reached stairs
+            if (dungeon.isStairs(newX, newY)) {
+                nextLevel();
+            }
+        }
+    }
+
+    private void playerAction() {
+        int x = player.getGridX();
+        int y = player.getGridY();
+
+        // Try to attack adjacent enemies
+        for (Enemy enemy : dungeon.getEnemies()) {
+            int dx = Math.abs(enemy.getGridX() - x);
+            int dy = Math.abs(enemy.getGridY() - y);
+            if (dx + dy == 1) {
+                player.attack(enemy);
+                if (enemy.getHealth() <= 0) {
+                    dungeon.removeEnemy(enemy);
+                    player.addExperience(enemy.getExperienceReward());
+                    Loot loot = LootGenerator.generateLoot(enemy.getGridX(), enemy.getGridY(), currentLevel);
+                    if (loot != null) {
+                        dungeon.addLoot(loot);
+                    }
+                }
+                return;
+            }
+        }
+    }
+
+    private void checkCollisions() {
+        int playerX = player.getGridX();
+        int playerY = player.getGridY();
+
+        for (Enemy enemy : dungeon.getEnemies()) {
+            if (enemy.getGridX() == playerX && enemy.getGridY() == playerY) {
+                player.takeDamage(enemy.getDamage());
+                if (player.getHealth() <= 0) {
+                    gameOver = true;
+                    deathMessage = "You were defeated!";
+                }
+            }
+        }
+    }
+
+    private void checkTrapCollision() {
+        int playerX = player.getGridX();
+        int playerY = player.getGridY();
+
+        for (Trap trap : dungeon.getTraps()) {
+            if (trap.getGridX() == playerX && trap.getGridY() == playerY && !trap.isTriggered()) {
+                trap.trigger();
+                player.takeDamage(trap.getDamage());
+                if (player.getHealth() <= 0) {
+                    gameOver = true;
+                    deathMessage = "You triggered a fatal trap!";
+                }
+            }
+        }
+    }
+
+    private void nextLevel() {
+        currentLevel++;
+        player.heal(player.getMaxHealth() / 2);
+        initializeGame();
+    }
+
+    private void handleInput(KeyEvent e) {
+        if (e.getKeyCode() == KeyEvent.VK_Q) {
+            System.exit(0);
+        }
+        if (gameOver && e.getKeyCode() == KeyEvent.VK_R) {
+            currentLevel = 1;
+            player = new Player(0, 0, TILE_SIZE);
+            initializeGame();
+        }
+    }
+
+    @Override
+    protected void paintComponent(Graphics g) {
+        super.paintComponent(g);
+        Graphics2D g2d = (Graphics2D) g;
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+        renderer.render(g2d, dungeon, player, currentLevel, gameOver, deathMessage);
+    }
+}
