@@ -1,0 +1,39 @@
+public class Item {
+    private String name;
+    private ItemType type;
+    private int attackBonus;
+    private int defenseBonus;
+    private int healthBonus;
+
+    public Item(String name, ItemType type, int attackBonus, int defenseBonus, int healthBonus) {
+        this.name = name;
+        this.type = type;
+        this.attackBonus = attackBonus;
+        this.defenseBonus = defenseBonus;
+        this.healthBonus = healthBonus;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public ItemType getType() {
+        return type;
+    }
+
+    public int getAttackBonus() {
+        return attackBonus;
+    }
+
+    public int getDefenseBonus() {
+        return defenseBonus;
+    }
+
+    public int getHealthBonus() {
+        return healthBonus;
+    }
+}
+
+enum ItemType {
+    WEAPON, ARMOR, POTION, KEY
+}
